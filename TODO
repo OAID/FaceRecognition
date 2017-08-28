@@ -1,0 +1,11 @@
+1. A more stable network shell, including:
+
+    support multiple connections simultaneously
+    broadcast to all conections
+    treat real tty as the net connections
+    a nice method to destroy
+
+
+2.  Separate and define API between framework and algorithm, so that each algorithm can be loaded as plugin
+
+
