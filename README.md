@@ -1,11 +1,13 @@
 # Face Demo
 
 This is a demo to show how to do face detection and recoginiton.
-This also will work as a testbed about how to define a framework API for different algorthms to be plugged-in/plugged out
+
 
 # Build
 
 Edit config.mk to select caffe/mxnet/tensorflow for mtcnn
+
+Note: Caffe is necessary to build lightened CNN face recognition algorithm
 
 Then 'make', 
 
