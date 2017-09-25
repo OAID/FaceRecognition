@@ -48,24 +48,28 @@ static int find_iac_se(int start_off, int left_len)
 	/* search for IAC first */
 	c=p_buf->data[ADD_RING_PTR(p_buf->read_ptr,start_off)];
 
-	while(left_len>0)
-	{
+        do {
+	   while(left_len>0)
+	   {
 		if (c==IAC)
 			break;
 
 		n++;
 		c=p_buf->data[ADD_RING_PTR(p_buf->read_ptr,n)];
 		left_len--;
-	}
+	   }
 
-	if(left_len<1)
+	   if(left_len<1)
 		return -1;
 
-	n++;
-	c=p_buf->data[ADD_RING_PTR(p_buf->read_ptr,n)];
+	   n++;
+	   c=p_buf->data[ADD_RING_PTR(p_buf->read_ptr,n)];
+	   left_len--;
 
-	if(c!=SE)
-		return -1;
+	  }while(c!=SE && left_len>1);
+
+        if(c!=SE)
+            return -1;
 
 	return n;
 }

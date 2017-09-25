@@ -10,11 +10,11 @@ CAFFE_ROOT=/home/haitao/github/caffe
 #if you want to build mxnet_mtcnn, you should set :
 #CONFIG_CAFFE_MTCNN=y, CONFIG_MXNET_MTCNN=y, CONFIG_TENSORFLOW_MTCNN=n
 
-CONFIG_MXNET_MTCNN=y
+CONFIG_MXNET_MTCNN=n
 
 MXNET_ROOT=/home/haitao/github/mxnet
 
 
-CONFIG_TENSORFLOW_MTCNN=y
+CONFIG_TENSORFLOW_MTCNN=n
 
 TENSORFLOW_ROOT=./tf_dist
