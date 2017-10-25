@@ -1,41 +1,25 @@
-# Face Demo
+# Face detection and recognization
+[![GitHub license](http://dmlc.github.io/img/apache2.svg)](./LICENSE)
 
-This is a demo to show how to do face detection and recoginiton.
+Face-demo is a project that is maintained by **OPEN** AI LAB, it uses MTCNN to detect and LightenedCNN to recognize face. 
 
+The release version is 0.1.0, is based on [Rockchip RK3399](http://www.rock-chips.com/plus/3399.html) Platform, target OS is Ubuntu 16.04.
 
-# Build
-
-Edit config.mk to select caffe/mxnet/tensorflow for mtcnn
-
-Note: Caffe is necessary to build lightened CNN face recognition algorithm
-
-Then 'make', 
-
-all the objects and binaries are generated under directory $BUILD_DIR
+### Documents
+* [Installation instructions](installation.md)
+* [Performance Report PDF](performance_report.pdf)
 
 
-# Run
+# Release History
 
-
-launch the program: 
-
-    ./build/bin/face_demo
-
-after you launch the progtam, in a new terminal
-using telnet to connect the shell:  
+### Version 0.1.0 - 2017-10-23 
    
-    telnet 127.0.0.1 8080
+  Initial version supports face register, face detection, and face recognization : 
 
-using this command to add an entry into database
+# Issue Report
+Issue report should contain the following information :
 
-    reg -i face_id -u name
+*  The exact description of the steps that are needed to reproduce the issue 
+* The exact description of what happens and what you think is wrong 
 
-## shell command list
-
-    del {-i face_id|-u name}        delete face features by face id or by name
-    exit                            exit the demo
-    help/h                          show this message
-    list                            display info of all registered faces
-    quit/Q/q                        quit shell. You can reconnect later
-    reg -i face_id -u name          register/update a face feature into system
-    rename -i face_id -u new_name   rename the name of face feature by id
+  
