@@ -50,12 +50,12 @@ make
 Add the directory of FaceVerify/libFaceCV and libcaffe.so which in caffeOnACL to LD_LIBRARY_PATH.
 ```
 ./build/bin/face-demo
-'''
+```
 
 after you launch the progtam, in a new terminal using telnet to connect the shell: 
-'''
+```
 telnet 127.0.0.1 8080
-'''
+```
 
 using this command to add an entry into database
 ```
