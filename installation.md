@@ -39,7 +39,8 @@ Modify the Makefile "LIBRARIES += glog gflags protobuf leveldb snappy lmdb boost
 ```
 
 ## Compile
-Modify the makefile.mk for caffeOnACL directory
+Edit config.mk to select caffe/mxnet/tensorflow for mtcnn
+Note: Caffe is necessary to build lightened CNN face recognition algorithm
 ```
 cd face-demo
 make
@@ -48,13 +49,10 @@ make
 ## Run 
 Add the directory of FaceVerify/libFaceCV and libcaffe.so which in caffeOnACL to LD_LIBRARY_PATH.
 ```
-1) cd face-demo
-2) Plugin USB camera device
-3) ./build/bin/face-demo
+./build/bin/face-demo
 '''
 
-after you launch the progtam, in a new terminal
-using telnet to connect the shell: 
+after you launch the progtam, in a new terminal using telnet to connect the shell: 
 '''
 telnet 127.0.0.1 8080
 '''
@@ -66,13 +64,13 @@ reg -i face_id -u name
 
 ## shell command list
 ```
-    del {-i face_id|-u name}        delete face features by face id or by name
-    exit                            exit the demo
-    help/h                          show this message
-    list                            display info of all registered faces
-    quit/Q/q                        quit shell. You can reconnect later
-    reg -i face_id -u name          register/update a face feature into system
-    rename -i face_id -u new_name   rename the name of face feature by id
+del {-i face_id|-u name}        delete face features by face id or by name
+exit                            exit the demo
+help/h                          show this message
+list                            display info of all registered faces
+quit/Q/q                        quit shell. You can reconnect later
+reg -i face_id -u name          register/update a face feature into system
+rename -i face_id -u new_name   rename the name of face feature by id
 ```
 
 
