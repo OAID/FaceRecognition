@@ -4,6 +4,7 @@ BUILD_DIR=./build
 include ./config.mk
 
 include detect/Makefile
+
 DETECT_OBJS:=$(addprefix $(BUILD_DIR)/detect/, $(detect-obj-y))
 
 
@@ -51,8 +52,8 @@ BIN_EXES=$(BIN_OBJS:.o=)
 
 # opencv related
 
-OPENCV_LDFLAGS=$(shell pkg-config --libs opencv)
-OPENCV_CFLAGS=$(shell pkg-config --cflags opencv)
+OPENCV_LDFLAGS= $(shell pkg-config --libs opencv)
+OPENCV_CFLAGS= $(shell pkg-config --cflags opencv)
 
 
 CXXFLAGS += $(OPENCV_CFLAGS)
