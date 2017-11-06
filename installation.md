@@ -26,10 +26,12 @@ unzip 3.30.zip
 cd opencv-3.3.0
 mkdir build
 cd build
-cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local/ ..
+cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local/AID/opencv3.3.0 ..
 make -j4
 sudo make install
 sudo ldconfig
+wget https://github.com/OAID/AID-tools/tree/master/script/gen-pkg-config-pc.sh
+sudo ~/gen-pkg-config-pc.sh /usr/local/AID
 ```
 
 * Install CaffeOnACL and compile using the CMake build instructions:
