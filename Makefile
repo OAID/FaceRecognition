@@ -50,16 +50,6 @@ BIN_OBJS+=$(TEST_OBJS)
 BIN_EXES=$(BIN_OBJS:.o=)
 
 
-# opencv related
-
-OPENCV_LDFLAGS= $(shell pkg-config --libs opencv)
-OPENCV_CFLAGS= $(shell pkg-config --cflags opencv)
-
-
-CXXFLAGS += $(OPENCV_CFLAGS)
-LIBS += $(OPENCV_LDFLAGS)
-
-
 all : $(BIN_EXES) 
 
 
