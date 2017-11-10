@@ -13,6 +13,7 @@
 #include "face_verify.hpp"
 #include "face_mem_store.hpp"
 #include "network_shell.hpp"
+#include <glog/logging.h>
 
 #include "utils.hpp"
 
@@ -621,6 +622,7 @@ void draw_box_and_title(cv::Mat& frame, face_box& box, char * title)
 
 int main(int argc, char * argv[])
 {
+	::google::InitGoogleLogging(argv[0]);
 	const char * type="caffe";
 	struct  sigaction sa;
 
