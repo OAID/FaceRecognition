@@ -98,8 +98,8 @@ int cosine_distance_verifier::search(float * f, int * p_face_id, float * p_score
 
 	}
 
-         if(p_score[0]>0.55 && p_score[0]<0.81)
-                p_score[0]=0.81;
+         //if(p_score[0]>0.55 && p_score[0]<0.81)
+         //       p_score[0]=0.81;
 
 	return 0;
 }
