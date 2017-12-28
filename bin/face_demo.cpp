@@ -77,6 +77,26 @@ struct face_window
 	float center_y;
 	std::string name;
 	char title[128];
+	std::list<float> score_stored;
+	int add_score(float score)
+	{
+		if(score_stored.size() == 3)
+		{
+			score_stored.pop_front();
+		}
+		score_stored.push_back(score);
+		return score_stored.size();
+	}
+	float get_avg_score()
+	{
+		float sum = 0;
+		for(auto i:score_stored)
+			sum += i;
+		if (score_stored.size())
+			return sum/score_stored.size();
+		else
+			return 0;
+	}
 };
 
 std::vector<face_window*> face_win_list;
@@ -567,6 +587,7 @@ void get_face_title(cv::Mat& frame,face_box& box,unsigned int frame_seq)
 	int face_id;
 	float score;
 	face_window * p_win;
+	float score_thresh = 0.7;
 
 	p_win=get_face_id_name_by_position(box,frame_seq);
 
@@ -574,7 +595,7 @@ void get_face_title(cv::Mat& frame,face_box& box,unsigned int frame_seq)
 	cv::Mat aligned;
 
 	/* align face */
-	get_aligned_face(frame,(float *)&box.landmark,5,128,aligned);
+	int ret_ali = get_aligned_face(frame,(float *)&box.landmark,5,128,aligned);
 
 	/* get feature */
 	p_extractor->extract_feature(aligned,feature);
@@ -583,15 +604,23 @@ void get_face_title(cv::Mat& frame,face_box& box,unsigned int frame_seq)
 
 	int ret=p_verifier->search(feature,&face_id,&score);
 
+	p_win->add_score(score);
+
+	float avg_score = p_win->get_avg_score();
 
 	/* found in db*/
-	if(ret==0 && score>0.8 && p_win->face_id != face_id)
+	if(ret==0 && score>score_thresh)
 	{
 		p_win->face_id=face_id;
 		get_face_name_by_id(face_id,p_win->name);
 	}
+	else if(p_win->name != "unknown")
+	{
+		p_win->name="unknown";
+		p_win->face_id=get_new_unknown_face_id();
+	}	
 #endif
-
+	//std::cout<<"face_demo: ret" << ret_ali << ", score " << score << ", avg_score " << avg_score << " score_thresh " << score_thresh << std::endl;
 	sprintf(p_win->title,"%d %s",p_win->face_id,p_win->name.c_str());
 }
 
@@ -732,9 +761,46 @@ int main(int argc, char * argv[])
 		unsigned long start_time=get_cur_time();
 
 		p_mtcnn->detect(frame,face_info);
+		
+		if(current_frame_count % 3)
+                {
+                    for(unsigned int i=0;i<face_info.size();i++)
+                    {
+			face_window * p_win=get_face_id_name_by_position(face_info[i],current_frame_count);
+			sprintf(p_win->title,"%d %s",p_win->face_id,p_win->name.c_str());
+			draw_box_and_title(frame,face_info[i],p_win->title);
+                        /*cv::rectangle(frame, cv::Point(face_info[i].x0, face_info[i].y0), cv::Point(face_info[i].x1, face_info[i].y1), cv::Scalar(0, 255, 0), 1);*/
+                    }
+                }
+                else
+                {
+                    for(unsigned int i=0;i<face_info.size();i++)
+                    {
+
+                            face_box& box=face_info[i];
+                            get_face_title(frame,box,current_frame_count);
+                    }
 
 
+                    if(p_para->cmd_status==CMD_STATUS_PENDING)
+                    {
+                            mem_sync;
+                            p_cur_frame=&frame;
+                            execute_shell_command(p_para);
+                    }
 
+                    for(unsigned int i=0;i<face_win_list.size();i++)
+                    {
+                            if(face_win_list[i]->frame_seq!= current_frame_count)
+                                    continue;
+
+                            draw_box_and_title(frame,face_win_list[i]->box,face_win_list[i]->title);
+                    }
+
+                    drop_aged_win(current_frame_count);
+                }
+
+		/*
 		for(unsigned int i=0;i<face_info.size();i++)
 		{
 
@@ -759,6 +825,8 @@ int main(int argc, char * argv[])
 		}
 
 		drop_aged_win(current_frame_count);
+		*/
+
 
 		unsigned long end_time=get_cur_time();
 
