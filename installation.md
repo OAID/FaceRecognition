@@ -68,9 +68,10 @@ reg -i face_id -u name
 ```
 del {-i face_id|-u name}        delete face features by face id or by name
 exit                            exit the demo
-help/h                          show this message
+help/h          		show this message
 list                            display info of all registered faces
-quit/Q/q                        quit shell. You can reconnect later
+maxfn -i maxFaceNum             set the max face number to verify
+quit/Q/q        		quit shell. You can reconnect later
 reg -i face_id -u name          register/update a face feature into system
 rename -i face_id -u new_name   rename the name of face feature by id
 ```
