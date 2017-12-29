@@ -49,15 +49,11 @@ struct shell_cmd_para
 	std::string name;
 
 	shell_cmd_para(void) { cmd_status=CMD_STATUS_IDEL;}
-
-
 };
 
 typedef void (*shell_exec_func_t)(shell_cmd_para *);
 
 std::map<std::string,shell_exec_func_t> shell_exec_table;
-
-
 
 feature_extractor * p_extractor;
 face_verifier   * p_verifier;
@@ -67,6 +63,7 @@ int current_frame_count=0;
 
 int win_keep_limit=10;
 int trace_pixels=100;
+unsigned int maxFaceNum = 3;
 
 struct face_window
 {
@@ -169,7 +166,6 @@ static void  exec_register_face_feature(shell_cmd_para * p_para)
 		if(face_win_list[i]->face_id == face_id &&
 				face_win_list[i]->frame_seq == current_frame_count)
 			break;
-
 	}
 
 	if(i==face_win_list.size())
@@ -233,7 +229,6 @@ void register_face_feature(int argc, char * argv[])
 			default:
 				break;
 		}
-
 	}
 
 	if(face_id<0 || username==NULL)
@@ -252,7 +247,6 @@ void register_face_feature(int argc, char * argv[])
 				p_info->name.c_str(),username);
 		return ;
 	}
-
 
 	/* setup command para */
 
@@ -283,7 +277,6 @@ void list_registered_face_info(int argc, char * argv[])
 
 	std::cout<<"total "<<n<<" faces registered"<<std::endl;
 }
-
 
 /* remove face feature */
 
@@ -471,6 +464,30 @@ void exit_face_demo(int argc, char * argv[])
 	quit_flag=1;
 }
 
+void set_max_face_number(int argc, char * argv[])
+{
+	int ret;
+	optind=1;
+	unsigned int maxnum=3;
+	
+	
+while((ret=getopt(argc,argv,"i:"))!=-1)
+	{
+            switch(ret)
+            {
+                case 'i':
+                        maxnum=strtoul(optarg,NULL,10);
+                        std::cout << "optarg:" << optarg << std::endl;
+                        break;
+                default:
+                        break;
+            }
+
+	}
+        maxFaceNum=maxnum;
+        std::cout << "Set up max face number: " << maxnum << std::endl;
+}
+
 void init_shell_cmd(void)
 {
 	/* this is for command executed in cv thread */
@@ -488,9 +505,9 @@ void init_shell_cmd(void)
 
 	register_network_shell_cmd("exit",exit_face_demo,"exit","exit the demo");
 
+        register_network_shell_cmd("maxfn",set_max_face_number,"maxfn -i maxFaceNum","set the max face number to verify");
+
 }
-
-
 
 /***********************************************************************************/
 
@@ -620,7 +637,7 @@ void get_face_title(cv::Mat& frame,face_box& box,unsigned int frame_seq)
 		p_win->face_id=get_new_unknown_face_id();
 	}	
 #endif
-	//std::cout<<"face_demo: ret" << ret_ali << ", score " << score << ", avg_score " << avg_score << " score_thresh " << score_thresh << std::endl;
+	/*std::cout<<"face_demo: ret" << ret_ali << ", score " << score << ", avg_score " << avg_score << " score_thresh " << score_thresh << std::endl;*/
 	sprintf(p_win->title,"%d %s",p_win->face_id,p_win->name.c_str());
 }
 
@@ -649,6 +666,8 @@ void draw_box_and_title(cv::Mat& frame, face_box& box, char * title)
 }
 
 
+bool GreaterSort (face_box a,face_box b) { return (abs(a.x1-a.x0)*(a.y1-a.y0) > abs((b.x1-b.x0)*(b.y1-b.y0))); }
+
 int main(int argc, char * argv[])
 {
 	::google::InitGoogleLogging(argv[0]);
@@ -675,8 +694,6 @@ int main(int argc, char * argv[])
 
 	sigaction(SIGTERM,&sa,NULL);
 	sigaction(SIGINT,&sa,NULL);
-
-
 
 	std::string model_dir=MODEL_DIR;
 
@@ -726,8 +743,6 @@ int main(int argc, char * argv[])
 
 	p_mem_store=new face_mem_store(256,10);
 
-
-
 	shell_cmd_para * p_para=get_shell_cmd_para();
 
 	init_network_shell();
@@ -745,88 +760,62 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 
-
 	cv::Mat frame;
 
 
 	while(!quit_flag)
 	{
-		std::vector<face_box> face_info;
+            std::vector<face_box> face_info;
 
-		camera.read(frame);
+            camera.read(frame);
 
-		current_frame_count++;
+            current_frame_count++;
 
+            unsigned long start_time=get_cur_time();
 
-		unsigned long start_time=get_cur_time();
-
-		p_mtcnn->detect(frame,face_info);
-		
-		if(current_frame_count % 3)
+            p_mtcnn->detect(frame,face_info);
+	        	
+            /* filter the faces in face_info, up to maxFaceNum faces left. */
+			
+            if(face_info.size()>maxFaceNum)
+            {
+		std::sort(face_info.begin(),face_info.end(),GreaterSort);
+                face_info.erase(face_info.begin()+maxFaceNum,face_info.end());
+            }
+               
+            if(current_frame_count % 3)
+            {
+                for(unsigned int i=0;i<face_info.size();i++)
                 {
-                    for(unsigned int i=0;i<face_info.size();i++)
-                    {
-			face_window * p_win=get_face_id_name_by_position(face_info[i],current_frame_count);
-			sprintf(p_win->title,"%d %s",p_win->face_id,p_win->name.c_str());
-			draw_box_and_title(frame,face_info[i],p_win->title);
-                        /*cv::rectangle(frame, cv::Point(face_info[i].x0, face_info[i].y0), cv::Point(face_info[i].x1, face_info[i].y1), cv::Scalar(0, 255, 0), 1);*/
-                    }
+                    face_window * p_win=get_face_id_name_by_position(face_info[i],current_frame_count);
+                    sprintf(p_win->title,"%d %s",p_win->face_id,p_win->name.c_str());
+                    draw_box_and_title(frame,face_info[i],p_win->title);
                 }
-                else
+            }
+            else
+            {
+                for(unsigned int i=0;i<face_info.size();i++)
                 {
-                    for(unsigned int i=0;i<face_info.size();i++)
-                    {
-
-                            face_box& box=face_info[i];
-                            get_face_title(frame,box,current_frame_count);
-                    }
-
-
-                    if(p_para->cmd_status==CMD_STATUS_PENDING)
-                    {
-                            mem_sync;
-                            p_cur_frame=&frame;
-                            execute_shell_command(p_para);
-                    }
-
-                    for(unsigned int i=0;i<face_win_list.size();i++)
-                    {
-                            if(face_win_list[i]->frame_seq!= current_frame_count)
-                                    continue;
-
-                            draw_box_and_title(frame,face_win_list[i]->box,face_win_list[i]->title);
-                    }
-
-                    drop_aged_win(current_frame_count);
+                    face_box& box=face_info[i];
+                    get_face_title(frame,box,current_frame_count);
                 }
 
-		/*
-		for(unsigned int i=0;i<face_info.size();i++)
-		{
+                if(p_para->cmd_status==CMD_STATUS_PENDING)
+                {
+                    mem_sync;
+                    p_cur_frame=&frame;
+                    execute_shell_command(p_para);
+                }
 
-			face_box& box=face_info[i];
-			get_face_title(frame,box,current_frame_count);
-		}
+                for(unsigned int i=0;i<face_win_list.size();i++)
+                {
+                    if(face_win_list[i]->frame_seq!= current_frame_count)
+                        continue;
+                    draw_box_and_title(frame,face_win_list[i]->box,face_win_list[i]->title);
+                }
 
-
-		if(p_para->cmd_status==CMD_STATUS_PENDING)
-		{
-			mem_sync;
-			p_cur_frame=&frame;
-			execute_shell_command(p_para);
-		}
-
-		for(unsigned int i=0;i<face_win_list.size();i++)
-		{
-			if(face_win_list[i]->frame_seq!= current_frame_count)
-				continue;
-
-			draw_box_and_title(frame,face_win_list[i]->box,face_win_list[i]->title);
-		}
-
-		drop_aged_win(current_frame_count);
-		*/
-
+                drop_aged_win(current_frame_count);
+            }
 
 		unsigned long end_time=get_cur_time();
 
