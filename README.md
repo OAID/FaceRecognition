@@ -12,6 +12,10 @@ The release version is 0.1.0, is based on [Rockchip RK3399](http://www.rock-chip
 
 # Release History
 
+### Version 0.1.1 - 2017-12-29 
+   
+  Add support to set the max face number to be recognized.
+
 ### Version 0.1.0 - 2017-10-23 
    
   Initial version supports face register, face detection, and face recognization : 

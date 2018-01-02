@@ -715,7 +715,7 @@ int main(int argc, char * argv[])
 
 	p_mtcnn->load_model(model_dir);
 	p_mtcnn->set_threshold(0.9,0.9,0.9);
-	p_mtcnn->set_factor_min_size(0.6,80);
+        p_mtcnn->set_factor_min_size(0.6,48);
 
 	/* alignment */
 
