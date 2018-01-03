@@ -783,7 +783,7 @@ int main(int argc, char * argv[])
                 face_info.erase(face_info.begin()+maxFaceNum,face_info.end());
             }
                
-            if(current_frame_count % 3)
+            if(current_frame_count % 12)
             {
                 for(unsigned int i=0;i<face_info.size();i++)
                 {
