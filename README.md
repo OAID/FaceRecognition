@@ -3,7 +3,7 @@
 
 Face-demo is a project that is maintained by **OPEN** AI LAB, it uses MTCNN to detect and LightenedCNN to recognize face. 
 
-The release version is 0.1.0, is based on [Rockchip RK3399](http://www.rock-chips.com/plus/3399.html) Platform, target OS is Ubuntu 16.04.
+The release version is 0.1.1, is based on [Rockchip RK3399](http://www.rock-chips.com/plus/3399.html) Platform, target OS is Ubuntu 16.04.
 
 ### Documents
 * [Installation instructions](installation.md)
