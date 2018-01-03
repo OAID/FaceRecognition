@@ -23,6 +23,7 @@ sudo apt-get install telnet
 ```
 wget https://github.com/opencv/opencv/archive/3.3.0.zip --no-check-certificate
 unzip 3.30.zip
+
 cd opencv-3.3.0
 mkdir build
 cd build
@@ -52,6 +53,11 @@ make
 Add the directory of FaceVerify/libFaceCV and libcaffe.so which in caffeOnACL to LD_LIBRARY_PATH.
 ```
 ./build/bin/face-demo
+```
+
+To get the best experience, you can run this demo by a script which set some environment variables to improve performance. 
+```
+./run.sh
 ```
 
 after you launch the progtam, in a new terminal using telnet to connect the shell: 
