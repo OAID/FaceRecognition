@@ -1,0 +1,14 @@
+{	
+    "win_keep_limit" : 10,
+    "trace_pixels" : 100,
+    "UNKNOWN_FACE_ID_MAX" : 1000,
+
+    "mtcnn_min_size" : 48,
+    "mtcnn_pnet_threshold" : 0.9,
+    "mtcnn_rnet_threshold" : 0.9,
+    "mtcnn_onet_threshold" : 0.9,
+    "mtcnn_factor" : 0.6,
+
+    "maxFaceNum" : 3,
+    "ver_delay_frame" : 12
+}

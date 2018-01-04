@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory.h>
 
 #include <unistd.h>
 #include <signal.h>
@@ -13,6 +14,7 @@
 #include "face_verify.hpp"
 #include "face_mem_store.hpp"
 #include "network_shell.hpp"
+#include "json/json.h"
 #include <glog/logging.h>
 
 #include "utils.hpp"
@@ -27,8 +29,6 @@ volatile int quit_flag=0;
 #define CMD_STATUS_PENDING  1
 #define CMD_STATUS_RUN      2
 #define CMD_STATUS_DONE     3
-
-#define UNKNOWN_FACE_ID_MAX 1000
 
 #define arm64_sync  asm volatile("dsb sy" : : : "memory")
 #define x86_sync    asm volatile("mfence":::"memory")
@@ -61,9 +61,19 @@ face_mem_store * p_mem_store;
 cv::Mat * p_cur_frame;
 int current_frame_count=0;
 
-int win_keep_limit=10;
-int trace_pixels=100;
-unsigned int maxFaceNum = 3;
+int win_keep_limit;
+int trace_pixels;
+int UNKNOWN_FACE_ID_MAX;
+
+float mtcnn_min_size;
+float mtcnn_pnet_threshold;
+float mtcnn_rnet_threshold;
+float mtcnn_onet_threshold;
+float mtcnn_factor;
+
+int maxFaceNum;
+int ver_delay_frame;
+
 
 struct face_window
 {
@@ -102,7 +112,7 @@ int get_new_unknown_face_id(void)
 {
 	static unsigned int current_id=0;
 
-	return  (current_id++%UNKNOWN_FACE_ID_MAX);
+        return  (current_id++%UNKNOWN_FACE_ID_MAX);
 }
 
 
@@ -190,7 +200,7 @@ static void  exec_register_face_feature(shell_cmd_para * p_para)
 	/* get feature */
 	p_extractor->extract_feature(aligned,info.p_feature);
 
-	if(face_id<UNKNOWN_FACE_ID_MAX)
+        if(face_id<UNKNOWN_FACE_ID_MAX)
 		info.face_id=get_new_registry_id();
 	else
 		info.face_id=face_id;
@@ -246,7 +256,7 @@ void register_face_feature(int argc, char * argv[])
 		fprintf(stdout,"do not support change name from %s to %s\n",
 				p_info->name.c_str(),username);
 		return ;
-	}
+        }
 
 	/* setup command para */
 
@@ -541,7 +551,7 @@ void drop_aged_win(unsigned int frame_count)
 
 	while(it!=face_win_list.end())
 	{
-		if((*it)->frame_seq+win_keep_limit<frame_count)
+                if((*it)->frame_seq+win_keep_limit<frame_count)
 		{
 			delete (*it);
 			face_win_list.erase(it);
@@ -566,11 +576,11 @@ face_window * get_face_id_name_by_position(face_box& box,unsigned int frame_seq)
 		float offset_x=p_win->center_x-center_x;
 		float offset_y=p_win->center_y-center_y;
 
-		if((offset_x<trace_pixels) &&
-				(offset_x>-trace_pixels) &&
-				(offset_y<trace_pixels) &&
-				(offset_y>-trace_pixels) &&
-				(p_win->frame_seq+win_keep_limit)>=frame_seq)
+                if((offset_x<trace_pixels) &&
+                                (offset_x>-trace_pixels) &&
+                                (offset_y<trace_pixels) &&
+                                (offset_y>-trace_pixels) &&
+                                (p_win->frame_seq+win_keep_limit)>=frame_seq)
 		{
 			found=1;
 			break;
@@ -665,6 +675,75 @@ void draw_box_and_title(cv::Mat& frame, face_box& box, char * title)
 
 }
 
+void show_params()
+{
+    std::cout << "\nwin_keep_limit: " << win_keep_limit
+              << "\ntrace_pixels: " << trace_pixels
+              << "\nUNKNOWN_FACE_ID_MAX: " << UNKNOWN_FACE_ID_MAX
+              << "\nmtcnn_min_size: " << mtcnn_min_size
+              << "\nmtcnn_pnet_threshold: " << mtcnn_pnet_threshold
+              << "\nmtcnn_rnet_threshold: " << mtcnn_rnet_threshold
+              << "\nmtcnn_onet_threshold: " << mtcnn_onet_threshold
+              << "\nmtcnn_factor: " << mtcnn_factor
+              << "\nmaxFaceNum: " << maxFaceNum
+              << "\nver_delay_frame: " << ver_delay_frame
+              << "\nRead complete!" << std::endl;
+}
+
+void default_config()
+{
+    std::cout << "Parse_config error, using default parameters.\n";
+
+    win_keep_limit=10;
+    trace_pixels=100;
+    UNKNOWN_FACE_ID_MAX=1000;
+
+    mtcnn_min_size=48;
+    mtcnn_pnet_threshold=0.9;
+    mtcnn_rnet_threshold=0.9;
+    mtcnn_onet_threshold=0.9;
+    mtcnn_factor=0.6;
+
+    maxFaceNum=3;
+    ver_delay_frame=12;
+
+    show_params();
+}
+
+bool parse_config(const char * path)
+{
+    std::ifstream ifs;
+    Json::Reader reader;
+    Json::Value root;
+
+    ifs.open(path, std::ios::in | std::ios::binary);
+    if (ifs.is_open() == false) {
+                std::cout << "Open json file failed!\n";
+        return false;
+    }
+
+    if (!reader.parse(ifs, root, false)) {
+                std::cout << "Read json file failed!\n";
+        ifs.close();
+        return false;
+    }
+
+    win_keep_limit = root["win_keep_limit"].asInt();
+    trace_pixels = root["trace_pixels"].asInt();
+    UNKNOWN_FACE_ID_MAX = root["UNKNOWN_FACE_ID_MAX"].asInt();
+
+    mtcnn_min_size = root["mtcnn_min_size"].asFloat();
+    mtcnn_pnet_threshold = root["mtcnn_pnet_threshold"].asFloat();
+    mtcnn_rnet_threshold = root["mtcnn_rnet_threshold"].asFloat();
+    mtcnn_onet_threshold = root["mtcnn_onet_threshold"].asFloat();
+    mtcnn_factor = root["mtcnn_factor"].asFloat();
+
+    maxFaceNum = root["maxFaceNum"].asInt();
+    ver_delay_frame = root["ver_delay_frame"].asInt();
+
+    ifs.close();
+    return true;
+}
 
 bool GreaterSort (face_box a,face_box b) { return (abs(a.x1-a.x0)*(a.y1-a.y0) > abs((b.x1-b.x0)*(b.y1-b.y0))); }
 
@@ -697,6 +776,18 @@ int main(int argc, char * argv[])
 
 	std::string model_dir=MODEL_DIR;
 
+        /* load parameters from json. */
+        std::string config_filename = "./models/face_demo.json";
+        if(parse_config(config_filename.data()))
+        {
+            std::cout << "Parse_config from json file: \n";
+            show_params();
+        }
+        else
+        {
+            default_config();
+        }
+
 	mtcnn * p_mtcnn=mtcnn_factory::create_detector(type);
 
 	if(p_mtcnn==nullptr)
@@ -714,8 +805,8 @@ int main(int argc, char * argv[])
 	}
 
 	p_mtcnn->load_model(model_dir);
-	p_mtcnn->set_threshold(0.9,0.9,0.9);
-        p_mtcnn->set_factor_min_size(0.6,48);
+        p_mtcnn->set_threshold(mtcnn_pnet_threshold,mtcnn_rnet_threshold,mtcnn_onet_threshold);
+        p_mtcnn->set_factor_min_size(mtcnn_factor,mtcnn_min_size);
 
 	/* alignment */
 
@@ -783,7 +874,7 @@ int main(int argc, char * argv[])
                 face_info.erase(face_info.begin()+maxFaceNum,face_info.end());
             }
                
-            if(current_frame_count % 12)
+            if(current_frame_count % ver_delay_frame)
             {
                 for(unsigned int i=0;i<face_info.size();i++)
                 {
