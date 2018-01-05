@@ -622,8 +622,8 @@ void get_face_title(cv::Mat& frame,face_box& box,unsigned int frame_seq)
 	cv::Mat aligned;
 
 	/* align face */
-	int ret_ali = get_aligned_face(frame,(float *)&box.landmark,5,128,aligned);
-
+        /*int ret_ali = get_aligned_face(frame,(float *)&box.landmark,5,128,aligned);*/
+        get_aligned_face(frame,(float *)&box.landmark,5,128,aligned);
 	/* get feature */
 	p_extractor->extract_feature(aligned,feature);
 
@@ -633,7 +633,7 @@ void get_face_title(cv::Mat& frame,face_box& box,unsigned int frame_seq)
 
 	p_win->add_score(score);
 
-	float avg_score = p_win->get_avg_score();
+        /*float avg_score = p_win->get_avg_score();*/
 
 	/* found in db*/
 	if(ret==0 && score>score_thresh)
@@ -908,10 +908,10 @@ int main(int argc, char * argv[])
                 drop_aged_win(current_frame_count);
             }
 
-                /*unsigned long end_time=get_cur_time();
+                /*unsigned long end_time=get_cur_time();*/
 
-		std::cerr<<"total detected: "<<face_info.size()<<" faces. used "<<(end_time-start_time)<<" us"<<std::endl;
-                */
+                /*std::cerr<<"total detected: "<<face_info.size()<<" faces. used "<<(end_time-start_time)<<" us"<<std::endl;*/
+
 		cv::imshow("camera",frame);
 
 		cv::waitKey(1);
