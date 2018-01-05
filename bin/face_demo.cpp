@@ -375,7 +375,7 @@ void delete_face_feature(int argc, char * argv[])
 			if(p_win->face_id==face_id)
 			{
 				p_win->face_id=get_new_unknown_face_id();
-				p_win->name="unknown";
+                                p_win->name=" ";
 				sprintf(p_win->title,"%d %s",p_win->face_id,p_win->name.c_str());
 			}
 		}
@@ -592,7 +592,7 @@ face_window * get_face_id_name_by_position(face_box& box,unsigned int frame_seq)
 	if(!found)
 	{
 		p_win=new face_window();
-		p_win->name="unknown";
+                p_win->name=" ";
 		p_win->face_id=get_new_unknown_face_id();
 	}
 
@@ -641,9 +641,9 @@ void get_face_title(cv::Mat& frame,face_box& box,unsigned int frame_seq)
 		p_win->face_id=face_id;
 		get_face_name_by_id(face_id,p_win->name);
 	}
-	else if(p_win->name != "unknown")
+        else if(p_win->name != " ")
 	{
-		p_win->name="unknown";
+                p_win->name=" ";
 		p_win->face_id=get_new_unknown_face_id();
 	}	
 #endif
@@ -862,7 +862,7 @@ int main(int argc, char * argv[])
 
             current_frame_count++;
 
-            unsigned long start_time=get_cur_time();
+            /*unsigned long start_time=get_cur_time();*/
 
             p_mtcnn->detect(frame,face_info);
 	        	
@@ -908,10 +908,10 @@ int main(int argc, char * argv[])
                 drop_aged_win(current_frame_count);
             }
 
-		unsigned long end_time=get_cur_time();
+                /*unsigned long end_time=get_cur_time();
 
 		std::cerr<<"total detected: "<<face_info.size()<<" faces. used "<<(end_time-start_time)<<" us"<<std::endl;
-
+                */
 		cv::imshow("camera",frame);
 
 		cv::waitKey(1);
