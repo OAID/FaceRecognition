@@ -15,7 +15,7 @@
 
 int main(int argc, char * argv[])
 {
-	const char * type="caffe";
+	const char * type="mxnet";
 	const char * fname="./test.jpg";
 	int save_crop=0;
 

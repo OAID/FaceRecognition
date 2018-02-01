@@ -3,13 +3,14 @@
 
 #include <exception>
 
+
 int lightened_cnn::load_model(const std::string& proto_model_dir)
 {
 	Caffe::set_mode(Caffe::CPU);
 
 	try{
-		net_=new Net<float>((proto_model_dir + "/light_cnn_small.prototxt"), caffe::TEST);
-		net_->CopyTrainedLayersFrom(proto_model_dir + "/light_cnn_small.caffemodel");
+		net_=new Net<float>((proto_model_dir + "/LightenedCNN_B_deploy.prototxt"), caffe::TEST);
+		net_->CopyTrainedLayersFrom(proto_model_dir + "/LightenedCNN_B.caffemodel");
 	}
 
 	catch(std::exception&e)
@@ -29,6 +30,7 @@ lightened_cnn:: ~lightened_cnn(void)
 	if(net_)
 		delete net_;
 }
+
 
 int lightened_cnn::extract_feature(cv::Mat & img, float * feature)
 {
@@ -65,12 +67,13 @@ int lightened_cnn::extract_feature(cv::Mat & img, float * feature)
 			}
 		}
 	}
-	
+
+
 	net_->Forward();
 
 	/* get output*/
 
-	const Blob<float> * feature_blob=net_->blob_by_name("eltwise6a").get();
+	const Blob<float> * feature_blob=net_->blob_by_name("eltwise_fc1").get();
 
 	if(feature_blob->shape(1)!= feature_len_)
 	{
