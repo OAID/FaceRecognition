@@ -13,7 +13,7 @@ sudo apt-get install cmake
 sudo apt-get install libreadline-dev
 ```
 
-* Install talnet:
+* Install telnet:
 ```
 sudo apt-get install xinetd
 sudo apt-get install telnet
@@ -45,14 +45,14 @@ Modify the Makefile "LIBRARIES += glog gflags protobuf leveldb snappy lmdb boost
 Edit config.mk to select caffe/mxnet/tensorflow for mtcnn
 Note: Caffe is necessary to build lightened CNN face recognition algorithm
 ```
-cd face-demo
+cd face-recognition
 make
 ```
 
 ## Run 
 Add the directory of FaceVerify/libFaceCV and libcaffe.so which in caffeOnACL to LD_LIBRARY_PATH.
 ```
-./build/bin/face-demo
+./build/bin/face-recognition
 ```
 
 To get the best experience, you can run this demo by a script which set some environment variables to improve performance. 
@@ -74,10 +74,10 @@ reg -i face_id -u name
 ```
 del {-i face_id|-u name}        delete face features by face id or by name
 exit                            exit the demo
-help/h          		show this message
+help/h          				show this message
 list                            display info of all registered faces
 maxfn -i maxFaceNum             set the max face number to verify
-quit/Q/q        		quit shell. You can reconnect later
+quit/Q/q        				quit shell. You can reconnect later
 reg -i face_id -u name          register/update a face feature into system
 rename -i face_id -u new_name   rename the name of face feature by id
 ```
