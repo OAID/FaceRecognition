@@ -8,7 +8,8 @@
     "mtcnn_rnet_threshold" : 0.9,
     "mtcnn_onet_threshold" : 0.9,
     "mtcnn_factor" : 0.6,
+	"verifier_threshold" : 0.6,
 
     "maxFaceNum" : 3,
-    "ver_delay_frame" : 12
+    "ver_delay_frame" : 10
 }

@@ -3,7 +3,6 @@
 
 #include <exception>
 
-
 int lightened_cnn::load_model(const std::string& proto_model_dir)
 {
 	Caffe::set_mode(Caffe::CPU);
@@ -30,7 +29,6 @@ lightened_cnn:: ~lightened_cnn(void)
 	if(net_)
 		delete net_;
 }
-
 
 int lightened_cnn::extract_feature(cv::Mat & img, float * feature)
 {
@@ -67,8 +65,7 @@ int lightened_cnn::extract_feature(cv::Mat & img, float * feature)
 			}
 		}
 	}
-
-
+	
 	net_->Forward();
 
 	/* get output*/

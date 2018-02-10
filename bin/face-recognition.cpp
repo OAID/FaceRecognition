@@ -15,7 +15,8 @@
 #include "face_mem_store.hpp"
 #include "network_shell.hpp"
 #include "json/json.h"
-#include <glog/logging.h>
+#include "perf.h"
+#include "log.h"
 
 #include "utils.hpp"
 
@@ -59,7 +60,10 @@ feature_extractor * p_extractor;
 face_verifier   * p_verifier;
 face_mem_store * p_mem_store;
 cv::Mat * p_cur_frame;
+perf t;
 int current_frame_count=0;
+int detect_time,extract_feature_time,verify_time;
+
 
 int win_keep_limit;
 int trace_pixels;
@@ -70,6 +74,7 @@ float mtcnn_pnet_threshold;
 float mtcnn_rnet_threshold;
 float mtcnn_onet_threshold;
 float mtcnn_factor;
+float verifier_threshold;
 
 int maxFaceNum;
 int ver_delay_frame;
@@ -200,7 +205,7 @@ static void  exec_register_face_feature(shell_cmd_para * p_para)
 	/* get feature */
 	p_extractor->extract_feature(aligned,info.p_feature);
 
-        if(face_id<UNKNOWN_FACE_ID_MAX)
+    if(face_id<UNKNOWN_FACE_ID_MAX)
 		info.face_id=get_new_registry_id();
 	else
 		info.face_id=face_id;
@@ -614,7 +619,7 @@ void get_face_title(cv::Mat& frame,face_box& box,unsigned int frame_seq)
 	int face_id;
 	float score;
 	face_window * p_win;
-	float score_thresh = 0.7;
+	float score_thresh = verifier_threshold;
 
 	p_win=get_face_id_name_by_position(box,frame_seq);
 
@@ -622,18 +627,23 @@ void get_face_title(cv::Mat& frame,face_box& box,unsigned int frame_seq)
 	cv::Mat aligned;
 
 	/* align face */
-        /*int ret_ali = get_aligned_face(frame,(float *)&box.landmark,5,128,aligned);*/
-        get_aligned_face(frame,(float *)&box.landmark,5,128,aligned);
+    int ret_ali = get_aligned_face(frame,(float *)&box.landmark,5,128,aligned);
+    
 	/* get feature */
+	t.recovery();
 	p_extractor->extract_feature(aligned,feature);
-
+	t.pause();
+	extract_feature_time = (int)t.gettimegap() - detect_time;
+	        	
 	/* search feature in db */
-
+	t.recovery();
 	int ret=p_verifier->search(feature,&face_id,&score);
+	verify_time = (int)t.gettimegap() - detect_time - extract_feature_time;
+	t.stop();
 
 	p_win->add_score(score);
 
-        /*float avg_score = p_win->get_avg_score();*/
+    float avg_score = p_win->get_avg_score();
 
 	/* found in db*/
 	if(ret==0 && score>score_thresh)
@@ -647,7 +657,7 @@ void get_face_title(cv::Mat& frame,face_box& box,unsigned int frame_seq)
 		p_win->face_id=get_new_unknown_face_id();
 	}	
 #endif
-	/*std::cout<<"face_demo: ret" << ret_ali << ", score " << score << ", avg_score " << avg_score << " score_thresh " << score_thresh << std::endl;*/
+	log_debug("face_demo: ret: %d, score: &f, avg_score: %f, score_thresh: %f \n", ret_ali, score, avg_score, score_thresh);
 	sprintf(p_win->title,"%d %s",p_win->face_id,p_win->name.c_str());
 }
 
@@ -685,6 +695,7 @@ void show_params()
               << "\nmtcnn_rnet_threshold: " << mtcnn_rnet_threshold
               << "\nmtcnn_onet_threshold: " << mtcnn_onet_threshold
               << "\nmtcnn_factor: " << mtcnn_factor
+              << "\nverifier_threshold: " << verifier_threshold
               << "\nmaxFaceNum: " << maxFaceNum
               << "\nver_delay_frame: " << ver_delay_frame
               << "\nRead complete!" << std::endl;
@@ -692,7 +703,7 @@ void show_params()
 
 void default_config()
 {
-    std::cout << "Parse_config error, using default parameters.\n";
+    log_printf("Parse_config error, using default parameters.\n");
 
     win_keep_limit=10;
     trace_pixels=100;
@@ -703,6 +714,7 @@ void default_config()
     mtcnn_rnet_threshold=0.9;
     mtcnn_onet_threshold=0.9;
     mtcnn_factor=0.6;
+	verifier_threshold=0.7;
 
     maxFaceNum=3;
     ver_delay_frame=12;
@@ -737,6 +749,7 @@ bool parse_config(const char * path)
     mtcnn_rnet_threshold = root["mtcnn_rnet_threshold"].asFloat();
     mtcnn_onet_threshold = root["mtcnn_onet_threshold"].asFloat();
     mtcnn_factor = root["mtcnn_factor"].asFloat();
+	verifier_threshold = root["verifier_threshold"].asFloat();
 
     maxFaceNum = root["maxFaceNum"].asInt();
     ver_delay_frame = root["ver_delay_frame"].asInt();
@@ -749,22 +762,25 @@ bool GreaterSort (face_box a,face_box b) { return (abs(a.x1-a.x0)*(a.y1-a.y0) > 
 
 int main(int argc, char * argv[])
 {
-	::google::InitGoogleLogging(argv[0]);
+	log_config_init();
+	perf t1;
+	
 	const char * type="caffe";
+	int evaluate_frame=0;
 	struct  sigaction sa;
 
-	int res;
-
-	while((res=getopt(argc,argv,"f:t:s"))!=-1)
-	{
-		switch(res)
-		{
-			case 't':
-				type=optarg;
-				break;
-			default:
-				break;
-		}
+	if( argc == 1 )
+    {
+        std::cout << "Usage: " << argv[0] << std::endl;
+        std::cout << "  -t <test average time for how many frames>" << std::endl;
+    }
+	
+	for( int i = 1; i < argc; i++ )
+    {
+        if( !strcmp( argv[i], "-t" ) )
+        {
+            evaluate_frame = atoi(argv[++i]);
+        }
 	}
 
 	sa.sa_sigaction=sig_user_interrupt;
@@ -776,62 +792,52 @@ int main(int argc, char * argv[])
 
 	std::string model_dir=MODEL_DIR;
 
-        /* load parameters from json. */
-        std::string config_filename = "./models/face_demo.json";
-        if(parse_config(config_filename.data()))
-        {
-            std::cout << "Parse_config from json file: \n";
-            show_params();
-        }
-        else
-        {
-            default_config();
-        }
+    /* load parameters from json. */
+    std::string config_filename = "./models/face_demo.json";
+    if(parse_config(config_filename.data()))
+    {
+        show_params();
+    }
+    else
+    {
+    	log_error("Read file %s failed. Using default config:\n", config_filename.data());
+        default_config();
+    }
+	if (evaluate_frame > 0) ver_delay_frame = 0;
 
 	mtcnn * p_mtcnn=mtcnn_factory::create_detector(type);
-
 	if(p_mtcnn==nullptr)
 	{
-		std::cerr<<type<<" is not supported"<<std::endl;
-		std::cerr<<"supported types: ";
+		log_error("%s is not supported,supported types:\n", type);
 		std::vector<std::string> type_list=mtcnn_factory::list();
 
 		for(int i=0;i<type_list.size();i++)
-			std::cerr<<" "<<type_list[i];
-
-		std::cerr<<std::endl;
-
+			log_printf(" &s",type_list[i]);
+		log_printf("\n");
 		return 1;
 	}
 
 	p_mtcnn->load_model(model_dir);
-        p_mtcnn->set_threshold(mtcnn_pnet_threshold,mtcnn_rnet_threshold,mtcnn_onet_threshold);
-        p_mtcnn->set_factor_min_size(mtcnn_factor,mtcnn_min_size);
-
-	/* alignment */
+    p_mtcnn->set_threshold(mtcnn_pnet_threshold,mtcnn_rnet_threshold,mtcnn_onet_threshold);
+    p_mtcnn->set_factor_min_size(mtcnn_factor,mtcnn_min_size);
 
 	/* extractor */
-
 	const std::string extractor_name("lightened_cnn");
-
 	p_extractor=extractor_factory::create_feature_extractor(extractor_name);
 
 	if(p_extractor==nullptr)
 	{
-		std::cerr<<"create feature extractor: "<<extractor_name<<" failed."<<std::endl;
-
+		log_error("Create feature extractor: %s failed.\n", extractor_name);
 		return 2;
 	}
 
 	p_extractor->load_model(model_dir);
 
 	/* verifier*/
-
 	p_verifier=get_face_verifier("cosine_distance");
 	p_verifier->set_feature_len(p_extractor->get_feature_length());
 
 	/* store */
-
 	p_mem_store=new face_mem_store(256,10);
 
 	shell_cmd_para * p_para=get_shell_cmd_para();
@@ -840,84 +846,95 @@ int main(int argc, char * argv[])
 	init_shell_cmd();
 	create_network_shell_thread("face>",8080);
 
-
 	cv::VideoCapture camera;
-
 	camera.open(0);
-
 	if(!camera.isOpened())
 	{
-		std::cerr<<"failed to open camera"<<std::endl;
+		log_error("Failed to open camera.\n");
 		return 1;
 	}
-
 	cv::Mat frame;
 
+	int total_detect_time=0, total_extract_feature_time=0, total_verify_time=0, total_time = 0;
 
 	while(!quit_flag)
 	{
-            std::vector<face_box> face_info;
+        std::vector<face_box> face_info;
 
-            camera.read(frame);
+        camera.read(frame);
 
-            current_frame_count++;
-
-            /*unsigned long start_time=get_cur_time();*/
-
-            p_mtcnn->detect(frame,face_info);
+        current_frame_count++;
+		
+		t1.start();
+		
+        t.start();
+		
+        p_mtcnn->detect(frame,face_info);
+		
+		t.pause();
+		
+		detect_time = (int)t.gettimegap();
 	        	
-            /* filter the faces in face_info, up to maxFaceNum faces left. */
-			
-            if(face_info.size()>maxFaceNum)
-            {
-		std::sort(face_info.begin(),face_info.end(),GreaterSort);
-                face_info.erase(face_info.begin()+maxFaceNum,face_info.end());
-            }
+        /* filter the faces in face_info, up to maxFaceNum faces left. */	
+        if(face_info.size()>maxFaceNum)
+        {
+			std::sort(face_info.begin(),face_info.end(),GreaterSort);
+            face_info.erase(face_info.begin()+maxFaceNum,face_info.end());
+        }
                
-            if(current_frame_count % ver_delay_frame)
+        if(ver_delay_frame != 0 && (current_frame_count % ver_delay_frame))
+        {
+            for(unsigned int i=0;i<face_info.size();i++)
             {
-                for(unsigned int i=0;i<face_info.size();i++)
-                {
-                    face_window * p_win=get_face_id_name_by_position(face_info[i],current_frame_count);
-                    sprintf(p_win->title,"%d %s",p_win->face_id,p_win->name.c_str());
-                    draw_box_and_title(frame,face_info[i],p_win->title);
-                }
+                face_window * p_win=get_face_id_name_by_position(face_info[i],current_frame_count);
+                sprintf(p_win->title,"%d %s",p_win->face_id,p_win->name.c_str());
+                draw_box_and_title(frame,face_info[i],p_win->title);
             }
-            else
+        }
+        else
+        {
+            for(unsigned int i=0;i<face_info.size();i++)
             {
-                for(unsigned int i=0;i<face_info.size();i++)
-                {
-                    face_box& box=face_info[i];
-                    get_face_title(frame,box,current_frame_count);
-                }
-
-                if(p_para->cmd_status==CMD_STATUS_PENDING)
-                {
-                    mem_sync;
-                    p_cur_frame=&frame;
-                    execute_shell_command(p_para);
-                }
-
-                for(unsigned int i=0;i<face_win_list.size();i++)
-                {
-                    if(face_win_list[i]->frame_seq!= current_frame_count)
-                        continue;
-                    draw_box_and_title(frame,face_win_list[i]->box,face_win_list[i]->title);
-                }
-
-                drop_aged_win(current_frame_count);
+                face_box& box=face_info[i];
+                get_face_title(frame,box,current_frame_count);
             }
 
-                /*unsigned long end_time=get_cur_time();*/
+            if(p_para->cmd_status==CMD_STATUS_PENDING)
+            {
+                mem_sync;
+                p_cur_frame=&frame;
+                execute_shell_command(p_para);
+            }
 
-                /*std::cerr<<"total detected: "<<face_info.size()<<" faces. used "<<(end_time-start_time)<<" us"<<std::endl;*/
+            for(unsigned int i=0;i<face_win_list.size();i++)
+            {
+                if(face_win_list[i]->frame_seq!= current_frame_count)
+                    continue;
+                draw_box_and_title(frame,face_win_list[i]->box,face_win_list[i]->title);
+            }
+
+            drop_aged_win(current_frame_count);
+
+			total_detect_time+= detect_time;
+			total_extract_feature_time += extract_feature_time;
+			total_verify_time += verify_time;
+			
+        }
+		total_time += (int)t1.gettimegap();
+		log_info("Detect time = %d us. Extract feature time = %d us. Verify time = %d us.",detect_time,extract_feature_time,verify_time);		
+		log_info("Total detected: %d faces. Used: %d us\n",face_info.size(),(int)t1.gettimegap());
+		
+		if(evaluate_frame && (current_frame_count == evaluate_frame))
+		{
+			
+			log_printf("Average time for %d frames: Detect time = %f us. Extract feature time = %f us. Verify time = %f us. Total time = %f. \n", evaluate_frame,total_detect_time*1.0 / evaluate_frame, total_extract_feature_time*1.0 / evaluate_frame, total_verify_time*1.0 / evaluate_frame, total_time * 1.0 / evaluate_frame);
+			return 0;
+		}
+		detect_time=extract_feature_time=verify_time=0;
 
 		cv::imshow("camera",frame);
-
 		cv::waitKey(1);
-
 	}
-
 	return 0;
 }
 

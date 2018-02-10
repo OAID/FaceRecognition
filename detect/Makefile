@@ -9,10 +9,10 @@ detect-obj-$(CONFIG_CAFFE_MTCNN)+=caffe_mtcnn.o
 ifeq ($(CONFIG_CAFFE_MTCNN),y)
    export PKG_CONFIG_PATH=/usr/local/AID/pkgconfig
    COMPUTELIBRARY_INCS += `pkg-config computelibrary --cflags`
-   CAFFE_INCS += `pkg-config caffeonacl --cflags`
+   CAFFE_INCS += `pkg-config caffe-hrt --cflags`
    CXXFLAGS += $(CAFFE_INCS) -DCPU_ONLY=1 -Wno-sign-compare 
    CXXFLAGS += `pkg-config --cflags opencv`
-   LIBS += `pkg-config caffeonacl --libs`
+   LIBS += `pkg-config caffe-hrt --libs`
    LIBS += `pkg-config computelibrary --libs` 
    LIBS += `pkg-config --libs opencv`
    LIBS += -lprotobuf -lboost_system -lglog
